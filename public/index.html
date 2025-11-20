@@ -1,0 +1,141 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>TinyLink</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Embroidery Background (Soft Fabric) -->
+  <style>
+  body {
+    background: url('https://www.transparenttextures.com/patterns/arabesque.png');
+    background-color: #fdfdfd;
+  }
+</style>
+
+</head>
+
+<body class="min-h-screen px-6 py-10">
+  <div class="max-w-3xl mx-auto">
+
+    <h1 class="text-4xl font-bold text-center mb-10 text-gray-800 drop-shadow-sm">
+        TinyLink URL Shortener
+    </h1>
+
+    <!-- Create Card -->
+    <div class="bg-white shadow-xl rounded-xl p-6 mb-10 border border-gray-200 backdrop-blur-sm bg-opacity-90">
+      <h2 class="text-2xl font-semibold mb-4">Create Short Link</h2>
+
+      <div class="flex flex-col gap-3">
+        <input id="url"
+          class="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-400 outline-none placeholder-gray-500"
+          placeholder="Enter long URL (https://example.com/...)" />
+
+        <input id="code"
+          class="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-400 outline-none placeholder-gray-500"
+          placeholder="Custom code (optional)" />
+
+        <button id="create"
+          class="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition shadow-md">
+          Create Link
+        </button>
+      </div>
+
+      <p id="msg" class="text-sm text-green-700 mt-3"></p>
+    </div>
+
+    <!-- Links List -->
+    <h2 class="text-2xl font-semibold mb-4 text-gray-800">Your Links</h2>
+    <div id="list" class="flex flex-col gap-4"></div>
+
+  </div>
+
+<script>
+async function loadLinks() {
+  const res = await fetch('/api/links');
+  const data = await res.json();
+  const container = document.getElementById('list');
+  container.innerHTML = '';
+
+  data.forEach(l => {
+    const card = document.createElement('div');
+    card.className = "bg-white shadow-lg p-5 rounded-xl border border-gray-200 backdrop-blur-sm bg-opacity-90";
+
+    card.innerHTML = `
+      <div class="flex justify-between items-center">
+        <div>
+          <p class="font-bold text-lg">${l.code}</p>
+          <p class="text-gray-600 truncate w-60">${l.url}</p>
+          <p class="text-blue-600 font-semibold mt-1">
+            <a href="/${l.code}" target="_blank">${location.origin}/${l.code}</a>
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-2">
+          <button onclick="copy('${l.code}')"
+            class=" bg-gray-200 hover:bg-gray-300 px-3 py-2 rounded-lg shadow-sm">
+            Copy
+          </button>
+
+          <button onclick="stats('${l.code}')"
+            class="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-lg shadow-md">
+            Stats
+          </button>
+
+          <button onclick="delLink('${l.code}')"
+            class="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg shadow-md">
+            Delete
+          </button>
+        </div>
+      </div>
+    `;
+
+    container.appendChild(card);
+  });
+}
+
+async function createLink() {
+  const url = document.getElementById('url').value;
+  const code = document.getElementById('code').value;
+  const msg = document.getElementById('msg');
+
+  msg.innerText = "Processing...";
+
+  const res = await fetch('/api/links', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url, code })
+  });
+
+  const data = await res.json();
+
+  if (res.status === 201) {
+    msg.innerText = "Created: " + data.short_url;
+    loadLinks();
+  } else {
+    msg.innerText = data.error || "Error";
+  }
+
+  msg.className = "mt-3 text-sm " + (res.status === 201 ? "text-green-700" : "text-red-600");
+}
+
+async function delLink(code) {
+  await fetch('/api/links/' + code, { method: 'DELETE' });
+  loadLinks();
+}
+
+function stats(code) {
+  location.href = '/code/' + code;
+}
+
+async function copy(code) {
+  await navigator.clipboard.writeText(location.origin + "/" + code);
+  alert("Copied: " + code);
+}
+
+loadLinks();
+document.getElementById('create').addEventListener('click', createLink);
+</script>
+
+</body>
+</html>

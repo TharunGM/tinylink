@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>TinyLink Stats</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Embroidery Background -->
+  <style>
+  body {
+    background: url('https://www.transparenttextures.com/patterns/arabesque.png');
+    background-color: #fdfdfd;
+  }
+</style>
+
+</head>
+
+<body class="px-6 py-10">
+  <div class="max-w-xl mx-auto bg-white shadow-xl rounded-xl p-6 border border-gray-200 backdrop-blur-sm bg-opacity-90">
+    <a href="/" class="text-blue-600 font-semibold block mb-4">← Back</a>
+    <h1 class="text-3xl font-bold mb-4">🔍 Link Stats</h1>
+
+    <div id="content" class="text-gray-700">Loading...</div>
+  </div>
+
+<script>
+async function load() {
+  const code = location.pathname.split('/')[2];
+  const res = await fetch('/api/links/' + code);
+  const data = await res.json();
+
+  if (res.status !== 200) {
+    document.getElementById('content').innerText = "Not found";
+    return;
+  }
+
+  document.getElementById('content').innerHTML = `
+    <p><strong>Code:</strong> ${data.code}</p>
+    <p class="mt-2"><strong>Short URL:</strong> 
+      <a class="text-blue-600" target="_blank" href="/${data.code}">
+        ${location.origin}/${data.code}
+      </a>
+    </p>
+
+    <p class="mt-2"><strong>Target:</strong> 
+      <a class="text-blue-600" href="${data.url}" target="_blank">${data.url}</a>
+    </p>
+
+    <div class="mt-6 bg-gray-100 rounded-lg p-4 shadow-inner">
+      <p class="text-xl font-semibold">📊 Total Clicks</p>
+      <p class="text-4xl font-bold mt-2">${data.click_count}</p>
+      <p class="text-sm mt-2">Last clicked: ${data.last_clicked || '-'}</p>
+    </div>
+
+    <button onclick="delLink('${data.code}')"
+      class="mt-6 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg shadow">
+      Delete Link
+    </button>
+  `;
+}
+
+async function delLink(code) {
+  await fetch('/api/links/' + code, { method: 'DELETE' });
+  location.href = "/";
+}
+
+load();
+</script>
+
+</body>
+</html>
